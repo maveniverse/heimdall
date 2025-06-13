@@ -77,7 +77,7 @@
     <version.maven>${version.maven3}</version.maven>
     <version.resolver>${version.maven3resolver}</version.resolver>
     <version.maveniverseShared>0.1.8</version.maveniverseShared>
-    <version.slf4j>1.7.36</version.slf4j>
+    <version.slf4j>2.0.17</version.slf4j>
   </properties>
 
   <dependencyManagement>
