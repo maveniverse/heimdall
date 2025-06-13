@@ -78,17 +78,6 @@
     </dependency>
 
     <dependency>
-      <groupId>eu.maveniverse.maven.mima.extensions</groupId>
-      <artifactId>mmr</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
@@ -101,17 +90,6 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>eu.maveniverse.maven.mima</groupId>
-      <artifactId>context</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>eu.maveniverse.maven.mima.runtime</groupId>
-      <artifactId>standalone-sisu</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
