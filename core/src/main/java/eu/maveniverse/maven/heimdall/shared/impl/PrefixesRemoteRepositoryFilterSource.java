@@ -21,6 +21,8 @@ package eu.maveniverse.maven.heimdall.shared.impl;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
+import eu.maveniverse.maven.heimdall.shared.Session;
+import eu.maveniverse.maven.heimdall.shared.SessionUtils;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -97,7 +100,8 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
     @Override
     public RemoteRepositoryFilter getRemoteRepositoryFilter(RepositorySystemSession session) {
-        if (isEnabled(session)) {
+        Optional<Session> so = SessionUtils.mayGetSession(session);
+        if (so.isPresent() && isEnabled(session)) {
             return new PrefixesFilter(session, getBasedir(session, false));
         }
         return null;

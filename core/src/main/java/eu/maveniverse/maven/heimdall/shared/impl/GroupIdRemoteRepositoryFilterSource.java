@@ -18,6 +18,8 @@
  */
 package eu.maveniverse.maven.heimdall.shared.impl;
 
+import eu.maveniverse.maven.heimdall.shared.Session;
+import eu.maveniverse.maven.heimdall.shared.SessionUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -25,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -76,7 +79,8 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
 
     @Override
     public RemoteRepositoryFilter getRemoteRepositoryFilter(RepositorySystemSession session) {
-        if (isEnabled(session)) {
+        Optional<Session> so = SessionUtils.mayGetSession(session);
+        if (so.isPresent() && isEnabled(session)) {
             return new GroupIdFilter(session);
         }
         return null;
