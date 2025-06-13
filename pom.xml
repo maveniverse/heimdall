@@ -69,7 +69,7 @@
     <requireRuntimeMavenVersion.range>[3.9,)</requireRuntimeMavenVersion.range>
 
     <version.maven3>3.9.10</version.maven3>
-    <version.maven3resolver>1.9.23</version.maven3resolver>
+    <version.maven3resolver>2.0.9</version.maven3resolver>
     <version.maven4>4.0.0-rc-3</version.maven4>
     <version.maven4resolver>2.0.9</version.maven4resolver>
 
