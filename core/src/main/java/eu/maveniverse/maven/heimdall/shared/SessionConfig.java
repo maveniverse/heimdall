@@ -36,22 +36,22 @@ public interface SessionConfig {
     String UNKNOWN_VERSION = "unknown";
 
     /**
-     * Configuration key in properties (system, user or project) to enable/disable Njord. Defaults to {@code true}.
+     * Configuration key in properties (system, user or project) to enable/disable Heimdall. Defaults to {@code true}.
      */
     String CONFIG_ENABLED = KEY_PREFIX + "enabled";
 
     /**
-     * Is Njord enabled? If this method returns {@code false}, Njord will step aside (like it was not loaded).
+     * Is Heimdall enabled? If this method returns {@code false}, Heimdall will step aside (like it was not loaded).
      */
     boolean enabled();
 
     /**
-     * Returns the Njord version.
+     * Returns the Heimdall version.
      */
     String version();
 
     /**
-     * Njord basedir, where all the config and locally staged repositories are.
+     * Heimdall basedir, where all the config and locally staged repositories are.
      */
     Path basedir();
 
@@ -242,15 +242,15 @@ public interface SessionConfig {
                         ? this.basedir.resolve("heimdall.properties")
                         : FileUtils.canonicalPath(this.basedir.resolve(propertiesPath));
 
-                Properties njordProperties = new Properties();
+                Properties heimdallProperties = new Properties();
                 if (Files.isRegularFile(this.propertiesPath)) {
                     try (InputStream inputStream = Files.newInputStream(this.propertiesPath)) {
-                        njordProperties.load(inputStream);
+                        heimdallProperties.load(inputStream);
                     } catch (IOException e) {
                         throw new UncheckedIOException(e);
                     }
                 }
-                this.heimdallProperties = MavenUtils.toMap(njordProperties);
+                this.heimdallProperties = MavenUtils.toMap(heimdallProperties);
                 this.userProperties = J8Utils.copyOf(requireNonNull(userProperties, "userProperties"));
                 this.systemProperties = J8Utils.copyOf(requireNonNull(systemProperties, "systemProperties"));
                 HashMap<String, String> eff = new HashMap<>();

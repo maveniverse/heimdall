@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Lifecycle participant that creates Njord session.
+ * Lifecycle participant that creates Heimdall session.
  */
 @Singleton
 @Named
@@ -72,7 +72,7 @@ public class HeimdallSessionLifecycleParticipant extends AbstractMavenLifecycleP
         try {
             Optional<Session> ns = SessionUtils.mayGetSession(session.getRepositorySession());
             if (ns.isPresent()) {
-                try (Session njordSession = ns.orElseThrow(J8Utils.OET)) {
+                try (Session heimdallSession = ns.orElseThrow(J8Utils.OET)) {
                     // nothing
                 }
                 logger.info("Heimdall session closed");
