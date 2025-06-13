@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
  * @since 1.9.0
  */
 @Singleton
-@Named(PrefixesRemoteRepositoryFilterSource.NAME)
+@Named
 public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepositoryFilterSourceSupport {
     public static final String NAME = "prefixes";
 

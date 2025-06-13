@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * @since 1.9.0
  */
 @Singleton
-@Named(GroupIdRemoteRepositoryFilterSource.NAME)
+@Named
 public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryFilterSourceSupport {
     public static final String NAME = "groupId";
 

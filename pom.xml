@@ -36,7 +36,8 @@
 
   <modules>
     <module>core</module>
-    <module>extension</module>
+    <module>extension3</module>
+    <module>extension4</module>
     <module>it</module>
   </modules>
 
@@ -67,10 +68,15 @@
     <maven.compiler.release>8</maven.compiler.release>
     <requireRuntimeMavenVersion.range>[3.9,)</requireRuntimeMavenVersion.range>
 
+    <version.maven3>3.9.10</version.maven3>
+    <version.maven3resolver>1.9.23</version.maven3resolver>
+    <version.maven4>4.0.0-rc-3</version.maven4>
+    <version.maven4resolver>2.0.9</version.maven4resolver>
+
     <!-- Dependency versions -->
+    <version.maven>${version.maven3}</version.maven>
+    <version.resolver>${version.maven3resolver}</version.resolver>
     <version.maveniverseShared>0.1.8</version.maveniverseShared>
-    <version.maven>3.9.10</version.maven>
-    <version.resolver>1.9.23</version.resolver>
     <version.slf4j>1.7.36</version.slf4j>
   </properties>
 
