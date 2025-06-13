@@ -30,15 +30,6 @@ public final class J8Utils {
      */
     public static Supplier<IllegalStateException> OET = () -> new IllegalStateException("No value present");
 
-    /**
-     * Java 8: <code>Map.of("create", "true")</code>.
-     */
-    public static Map<String, String> zipFsCreate(boolean create) {
-        HashMap<String, String> map = new HashMap<>();
-        map.put("create", Boolean.toString(create));
-        return map;
-    }
-
     private static final int DEFAULT_BUFFER_SIZE = 16384;
 
     /**

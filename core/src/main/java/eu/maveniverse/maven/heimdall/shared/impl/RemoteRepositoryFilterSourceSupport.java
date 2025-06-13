@@ -37,9 +37,9 @@ import org.eclipse.aether.util.DirectoryUtils;
  * <p>
  * The configuration keys supported:
  * <ul>
- *     <li><pre>aether.remoteRepositoryFilter.${id}.enabled</pre> (boolean) must be explicitly set to "true"
+ *     <li><pre>heimdall.${id}.enabled</pre> (boolean) must be explicitly set to "true"
  *     to become enabled</li>
- *     <li><pre>aether.remoteRepositoryFilter.${id}.basedir</pre> (string, path) directory from where implementation
+ *     <li><pre>heimdall.${id}.basedir</pre> (string, path) directory from where implementation
  *     can use files. If unset, default value is ".remoteRepositoryFilters/${id}" and is resolved from local
  *     repository basedir.</li>
  * </ul>
