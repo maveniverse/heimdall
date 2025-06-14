@@ -38,8 +38,7 @@ import org.eclipse.aether.util.DirectoryUtils;
  * <p>
  * The configuration keys supported:
  * <ul>
- *     <li><pre>heimdall.${id}.enabled</pre> (boolean) must be explicitly set to "true"
- *     to become enabled</li>
+ *     <li><pre>heimdall.${id}.enabled</pre> (boolean) make possible to disable given filter (defaults to {@code true})</li>
  *     <li><pre>heimdall.${id}.basedir</pre> (string, path) directory from where implementation
  *     can use files. If unset, default value is ".remoteRepositoryFilters/${id}" and is resolved from local
  *     repository basedir.</li>
@@ -69,12 +68,12 @@ public abstract class RemoteRepositoryFilterSourceSupport extends ComponentSuppo
     }
 
     /**
-     * Returns {@code true} if session configuration contains this name set to {@code true}.
+     * Returns enabled state of filter.
      * <p>
-     * Default is {@code false}.
+     * Default is {@code true}.
      */
     protected boolean isEnabled(RepositorySystemSession session) {
-        return ConfigUtils.getBoolean(session, false, CONFIG_PROP_PREFIX + this.name);
+        return ConfigUtils.getBoolean(session, true, CONFIG_PROP_PREFIX + this.name);
     }
 
     /**
