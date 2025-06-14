@@ -1,2 +1,2 @@
-org.codehaus.groovy
-
+# allow org.codehaus.groovy ONLY
+=org.codehaus.groovy

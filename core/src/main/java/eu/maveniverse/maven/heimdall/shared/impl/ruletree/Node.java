@@ -12,17 +12,17 @@ import java.util.HashMap;
 /**
  * A tree structure with rules.
  */
-public class Node {
-    private static final HashMap<String, String> EMPTY = new HashMap<>();
-
+class Node {
     private final String name;
+    private final boolean stop;
+    private final Boolean allow;
     private final HashMap<String, Node> siblings;
-    private final HashMap<String, String> rules;
 
-    public Node(String name) {
+    protected Node(String name, boolean stop, Boolean allow) {
         this.name = name;
+        this.stop = stop;
+        this.allow = allow;
         this.siblings = new HashMap<>();
-        this.rules = EMPTY;
     }
 
     public String getName() {
@@ -33,11 +33,31 @@ public class Node {
         return siblings.isEmpty();
     }
 
-    public Node addSibling(String name) {
-        return siblings.computeIfAbsent(name, Node::new);
+    public boolean isStop() {
+        return stop;
     }
 
-    public Node getSibling(String name) {
+    public Boolean isAllow() {
+        return allow;
+    }
+
+    protected Node addSibling(String name, boolean stop, Boolean allow) {
+        return siblings.computeIfAbsent(name, n -> new Node(n, stop, allow));
+    }
+
+    protected Node getSibling(String name) {
         return siblings.get(name);
+    }
+
+    @Override
+    public String toString() {
+        return (allow != null ? (allow ? "+" : "-") : "?") + (stop ? "=" : "") + name;
+    }
+
+    public void dump(String prefix) {
+        System.out.println(prefix + this);
+        for (Node node : siblings.values()) {
+            node.dump(prefix + "  ");
+        }
     }
 }

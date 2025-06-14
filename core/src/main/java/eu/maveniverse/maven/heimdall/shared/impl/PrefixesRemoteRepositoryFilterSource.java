@@ -22,7 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import eu.maveniverse.maven.heimdall.shared.Session;
 import eu.maveniverse.maven.heimdall.shared.SessionUtils;
-import eu.maveniverse.maven.heimdall.shared.impl.ruletree.RootNode;
+import eu.maveniverse.maven.heimdall.shared.impl.ruletree.PrefixTree;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -85,7 +85,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
     private final RepositoryLayoutProvider repositoryLayoutProvider;
 
-    private final ConcurrentHashMap<RemoteRepository, RootNode> prefixes;
+    private final ConcurrentHashMap<RemoteRepository, PrefixTree> prefixes;
 
     private final ConcurrentHashMap<RemoteRepository, RepositoryLayout> layouts;
 
@@ -128,7 +128,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
     /**
      * Caches prefixes instances for remote repository.
      */
-    private RootNode cacheNode(RepositorySystemSession session, Path basedir, RemoteRepository remoteRepository) {
+    private PrefixTree cacheNode(RepositorySystemSession session, Path basedir, RemoteRepository remoteRepository) {
         if (!remoteRepository.isBlocked() && null == ongoingUpdates.putIfAbsent(remoteRepository, Boolean.TRUE)) {
             try {
                 return prefixes.computeIfAbsent(
@@ -137,13 +137,13 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
                 ongoingUpdates.remove(remoteRepository);
             }
         }
-        return RootNode.SENTINEL;
+        return PrefixTree.SENTINEL;
     }
 
     /**
-     * Loads prefixes file and preprocesses it into {@link RootNode} instance.
+     * Loads prefixes file and preprocesses it into {@link PrefixTree} instance.
      */
-    private RootNode loadRepositoryPrefixes(
+    private PrefixTree loadRepositoryPrefixes(
             RepositorySystemSession session, Path baseDir, RemoteRepository remoteRepository) {
         Path filePath = resolvePrefixesFromRemoteRepository(session, remoteRepository);
         if (filePath == null) {
@@ -153,10 +153,10 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
             logger.debug(
                     "Loading prefixes for remote repository {} from file '{}'", remoteRepository.getId(), filePath);
             try (Stream<String> lines = Files.lines(filePath, StandardCharsets.UTF_8)) {
-                RootNode rootNode = new RootNode("");
-                int rules = rootNode.loadNodes(lines);
+                PrefixTree prefixTree = new PrefixTree("");
+                int rules = prefixTree.loadNodes(lines);
                 logger.info("Heimdall loaded {} prefixes for remote repository {}", rules, remoteRepository.getId());
-                return rootNode;
+                return prefixTree;
             } catch (FileNotFoundException e) {
                 // strange: we tested for it above, still, we should not fail
             } catch (IOException e) {
@@ -164,7 +164,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
             }
         }
         logger.debug("Prefix file for remote repository {} not found at '{}'", remoteRepository, filePath);
-        return RootNode.SENTINEL;
+        return PrefixTree.SENTINEL;
     }
 
     private Path resolvePrefixesFromRemoteRepository(
@@ -221,11 +221,11 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
             if (!isEnabled(repoSession)) {
                 return NOT_PRESENT_RESULT;
             }
-            RootNode root = cacheNode(repoSession, basedir, remoteRepository);
-            if (RootNode.SENTINEL == root) {
+            PrefixTree root = cacheNode(repoSession, basedir, remoteRepository);
+            if (PrefixTree.SENTINEL == root) {
                 return NOT_PRESENT_RESULT;
             }
-            if (root.accepted(path)) {
+            if (root.acceptedPath(path)) {
                 return new SimpleResult(true, "Prefix " + path + " allowed from " + remoteRepository);
             } else {
                 return new SimpleResult(false, "Prefix " + path + " NOT allowed from " + remoteRepository);
