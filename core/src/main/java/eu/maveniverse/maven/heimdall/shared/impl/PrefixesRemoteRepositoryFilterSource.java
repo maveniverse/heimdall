@@ -81,6 +81,8 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
     static final String PREFIXES_FILE_SUFFIX = ".txt";
 
+    private static final String PREFIX_FILE_PATH = ".meta/prefixes.txt";
+
     private final RepositorySystem repositorySystem;
 
     private final RepositoryLayoutProvider repositoryLayoutProvider;
@@ -170,7 +172,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
     private Path resolvePrefixesFromRemoteRepository(
             RepositorySystemSession session, RemoteRepository remoteRepository) {
         MetadataRequest request =
-                new MetadataRequest(new DefaultMetadata(".meta/prefixes.txt", Metadata.Nature.RELEASE_OR_SNAPSHOT));
+                new MetadataRequest(new DefaultMetadata(PREFIX_FILE_PATH, Metadata.Nature.RELEASE_OR_SNAPSHOT));
         request.setRepository(remoteRepository);
         request.setDeleteLocalCopyIfMissing(true);
         request.setFavorLocalRepository(true);
