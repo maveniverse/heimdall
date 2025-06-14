@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
@@ -39,16 +40,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.metadata.DefaultMetadata;
 import org.eclipse.aether.metadata.Metadata;
 import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.MetadataRequest;
+import org.eclipse.aether.resolution.MetadataResult;
 import org.eclipse.aether.spi.connector.filter.RemoteRepositoryFilter;
 import org.eclipse.aether.spi.connector.layout.RepositoryLayout;
 import org.eclipse.aether.spi.connector.layout.RepositoryLayoutProvider;
 import org.eclipse.aether.transfer.NoRepositoryLayoutException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Remote repository filter source filtering on path prefixes. It is backed by a file that lists all allowed path
@@ -82,7 +85,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
     static final String PREFIXES_FILE_SUFFIX = ".txt";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PrefixesRemoteRepositoryFilterSource.class);
+    private final RepositorySystem repositorySystem;
 
     private final RepositoryLayoutProvider repositoryLayoutProvider;
 
@@ -91,8 +94,10 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
     private final ConcurrentHashMap<RemoteRepository, RepositoryLayout> layouts;
 
     @Inject
-    public PrefixesRemoteRepositoryFilterSource(RepositoryLayoutProvider repositoryLayoutProvider) {
+    public PrefixesRemoteRepositoryFilterSource(
+            RepositorySystem repositorySystem, RepositoryLayoutProvider repositoryLayoutProvider) {
         super(NAME);
+        this.repositorySystem = requireNonNull(repositorySystem);
         this.repositoryLayoutProvider = requireNonNull(repositoryLayoutProvider);
         this.prefixes = new ConcurrentHashMap<>();
         this.layouts = new ConcurrentHashMap<>();
@@ -102,7 +107,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
     public RemoteRepositoryFilter getRemoteRepositoryFilter(RepositorySystemSession session) {
         Optional<Session> so = SessionUtils.mayGetSession(session);
         if (so.isPresent() && isEnabled(session)) {
-            return new PrefixesFilter(session, getBasedir(session, false));
+            return new PrefixesFilter(so.orElseThrow(J8Utils.OET), session, getBasedir(session, false));
         }
         return null;
     }
@@ -122,21 +127,35 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
         });
     }
 
+    private final ConcurrentHashMap<RemoteRepository, Boolean> ongoingUpdates = new ConcurrentHashMap<>();
+
     /**
      * Caches prefixes instances for remote repository.
      */
-    private Node cacheNode(Path basedir, RemoteRepository remoteRepository) {
-        return prefixes.computeIfAbsent(remoteRepository, r -> loadRepositoryPrefixes(basedir, remoteRepository));
+    private Node cacheNode(RepositorySystemSession session, Path basedir, RemoteRepository remoteRepository) {
+        if (!remoteRepository.isBlocked() && null == ongoingUpdates.putIfAbsent(remoteRepository, Boolean.TRUE)) {
+            try {
+                return prefixes.computeIfAbsent(
+                        remoteRepository, r -> loadRepositoryPrefixes(session, basedir, remoteRepository));
+            } finally {
+                ongoingUpdates.remove(remoteRepository);
+            }
+        }
+        return NOT_PRESENT_NODE;
     }
 
     /**
      * Loads prefixes file and preprocesses it into {@link Node} instance.
      */
-    private Node loadRepositoryPrefixes(Path baseDir, RemoteRepository remoteRepository) {
-        Path filePath = baseDir.resolve(PREFIXES_FILE_PREFIX + remoteRepository.getId() + PREFIXES_FILE_SUFFIX);
+    private Node loadRepositoryPrefixes(
+            RepositorySystemSession session, Path baseDir, RemoteRepository remoteRepository) {
+        Path filePath = resolvePrefixesFromRemoteRepository(session, remoteRepository);
+        if (filePath == null) {
+            filePath = baseDir.resolve(PREFIXES_FILE_PREFIX + remoteRepository.getId() + PREFIXES_FILE_SUFFIX);
+        }
         if (Files.isReadable(filePath)) {
             try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
-                LOGGER.debug(
+                logger.debug(
                         "Loading prefixes for remote repository {} from file '{}'", remoteRepository.getId(), filePath);
                 Node root = new Node("");
                 String prefix;
@@ -150,7 +169,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
                         }
                     }
                 }
-                LOGGER.info("Heimdall loaded {} prefixes for remote repository {}", lines, remoteRepository.getId());
+                logger.info("Heimdall loaded {} prefixes for remote repository {}", lines, remoteRepository.getId());
                 return root;
             } catch (FileNotFoundException e) {
                 // strange: we tested for it above, still, we should not fail
@@ -158,23 +177,41 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
                 throw new UncheckedIOException(e);
             }
         }
-        LOGGER.debug("Prefix file for remote repository {} not found at '{}'", remoteRepository, filePath);
+        logger.debug("Prefix file for remote repository {} not found at '{}'", remoteRepository, filePath);
         return NOT_PRESENT_NODE;
     }
 
-    private class PrefixesFilter implements RemoteRepositoryFilter {
-        private final RepositorySystemSession session;
+    private Path resolvePrefixesFromRemoteRepository(
+            RepositorySystemSession session, RemoteRepository remoteRepository) {
+        MetadataRequest request =
+                new MetadataRequest(new DefaultMetadata(".meta/prefixes.txt", Metadata.Nature.RELEASE_OR_SNAPSHOT));
+        request.setRepository(remoteRepository);
+        request.setDeleteLocalCopyIfMissing(true);
+        request.setFavorLocalRepository(true);
+        MetadataResult result = repositorySystem
+                .resolveMetadata(session, Collections.singleton(request))
+                .get(0);
+        if (result.isResolved()) {
+            return result.getMetadata().getFile().toPath();
+        } else {
+            return null;
+        }
+    }
 
+    private class PrefixesFilter implements RemoteRepositoryFilter {
+        private final Session session;
+        private final RepositorySystemSession repoSession;
         private final Path basedir;
 
-        private PrefixesFilter(RepositorySystemSession session, Path basedir) {
+        private PrefixesFilter(Session session, RepositorySystemSession repoSession, Path basedir) {
             this.session = session;
+            this.repoSession = repoSession;
             this.basedir = basedir;
         }
 
         @Override
         public Result acceptArtifact(RemoteRepository remoteRepository, Artifact artifact) {
-            RepositoryLayout repositoryLayout = cacheLayout(session, remoteRepository);
+            RepositoryLayout repositoryLayout = cacheLayout(repoSession, remoteRepository);
             if (repositoryLayout == null) {
                 return new SimpleResult(true, "Unsupported layout: " + remoteRepository);
             }
@@ -185,7 +222,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
         @Override
         public Result acceptMetadata(RemoteRepository remoteRepository, Metadata metadata) {
-            RepositoryLayout repositoryLayout = cacheLayout(session, remoteRepository);
+            RepositoryLayout repositoryLayout = cacheLayout(repoSession, remoteRepository);
             if (repositoryLayout == null) {
                 return new SimpleResult(true, "Unsupported layout: " + remoteRepository);
             }
@@ -195,7 +232,10 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
         }
 
         private Result acceptPrefix(RemoteRepository remoteRepository, String path) {
-            Node root = cacheNode(basedir, remoteRepository);
+            if (!isEnabled(repoSession)) {
+                return NOT_PRESENT_RESULT;
+            }
+            Node root = cacheNode(repoSession, basedir, remoteRepository);
             if (NOT_PRESENT_NODE == root) {
                 return NOT_PRESENT_RESULT;
             }
@@ -243,12 +283,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
         }
 
         public Node addSibling(String name) {
-            Node sibling = siblings.get(name);
-            if (sibling == null) {
-                sibling = new Node(name);
-                siblings.put(name, sibling);
-            }
-            return sibling;
+            return siblings.computeIfAbsent(name, Node::new);
         }
 
         public Node getSibling(String name) {

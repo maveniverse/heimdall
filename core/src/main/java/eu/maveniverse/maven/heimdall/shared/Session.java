@@ -14,4 +14,9 @@ public interface Session extends Closeable {
      * Returns this session configuration.
      */
     SessionConfig config();
+
+    /**
+     * Allows one to register a hook called just before this session is closed.
+     */
+    void registerOnCloseHook(Runnable onCloseHook);
 }
