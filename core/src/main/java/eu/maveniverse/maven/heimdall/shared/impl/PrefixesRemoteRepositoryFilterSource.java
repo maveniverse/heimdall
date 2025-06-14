@@ -149,7 +149,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
      */
     private Node loadRepositoryPrefixes(
             RepositorySystemSession session, Path baseDir, RemoteRepository remoteRepository) {
-        Path filePath = resolverPrefixesFromRemoteRepository(session, remoteRepository);
+        Path filePath = resolvePrefixesFromRemoteRepository(session, remoteRepository);
         if (filePath == null) {
             filePath = baseDir.resolve(PREFIXES_FILE_PREFIX + remoteRepository.getId() + PREFIXES_FILE_SUFFIX);
         }
@@ -181,7 +181,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
         return NOT_PRESENT_NODE;
     }
 
-    private Path resolverPrefixesFromRemoteRepository(
+    private Path resolvePrefixesFromRemoteRepository(
             RepositorySystemSession session, RemoteRepository remoteRepository) {
         MetadataRequest request =
                 new MetadataRequest(new DefaultMetadata(".meta/prefixes.txt", Metadata.Nature.RELEASE_OR_SNAPSHOT));
