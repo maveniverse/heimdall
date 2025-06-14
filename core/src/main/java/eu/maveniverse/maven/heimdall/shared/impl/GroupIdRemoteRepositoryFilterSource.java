@@ -39,8 +39,6 @@ import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.metadata.Metadata;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.spi.connector.filter.RemoteRepositoryFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Remote repository filter source filtering on G coordinate. It is backed by a file that lists all allowed groupIds
@@ -67,8 +65,6 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
 
     static final String GROUP_ID_FILE_SUFFIX = ".txt";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GroupIdRemoteRepositoryFilterSource.class);
-
     private final ConcurrentHashMap<Path, Set<String>> rules;
 
     @Inject
@@ -81,7 +77,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
     public RemoteRepositoryFilter getRemoteRepositoryFilter(RepositorySystemSession session) {
         Optional<Session> so = SessionUtils.mayGetSession(session);
         if (so.isPresent() && isEnabled(session)) {
-            return new GroupIdFilter(session);
+            return new GroupIdFilter(so.orElseThrow(J8Utils.OET), session);
         }
         return null;
     }
@@ -98,7 +94,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
         return rules.computeIfAbsent(filePath, r -> {
             Set<String> rules = loadRepositoryRules(filePath);
             if (rules != NOT_PRESENT) {
-                LOGGER.info(
+                logger.info(
                         "Heimdall loaded {} groupId for remote repository {}", rules.size(), remoteRepository.getId());
             }
             return rules;
@@ -126,10 +122,12 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
     private static final TreeSet<String> NOT_PRESENT = new TreeSet<>();
 
     private class GroupIdFilter implements RemoteRepositoryFilter {
-        private final RepositorySystemSession session;
+        private final Session session;
+        private final RepositorySystemSession repoSession;
 
-        private GroupIdFilter(RepositorySystemSession session) {
+        private GroupIdFilter(Session session, RepositorySystemSession repoSession) {
             this.session = session;
+            this.repoSession = repoSession;
         }
 
         @Override
@@ -143,7 +141,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
         }
 
         private Result acceptGroupId(RemoteRepository remoteRepository, String groupId) {
-            Set<String> groupIds = cacheRules(session, remoteRepository);
+            Set<String> groupIds = cacheRules(repoSession, remoteRepository);
             if (NOT_PRESENT == groupIds) {
                 return NOT_PRESENT_RESULT;
             }

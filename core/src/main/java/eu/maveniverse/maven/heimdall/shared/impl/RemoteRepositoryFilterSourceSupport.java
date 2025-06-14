@@ -20,6 +20,7 @@ package eu.maveniverse.maven.heimdall.shared.impl;
 
 import static java.util.Objects.requireNonNull;
 
+import eu.maveniverse.maven.shared.core.component.ComponentSupport;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
@@ -46,7 +47,8 @@ import org.eclipse.aether.util.DirectoryUtils;
  *
  * @since 1.9.0
  */
-public abstract class RemoteRepositoryFilterSourceSupport implements RemoteRepositoryFilterSource {
+public abstract class RemoteRepositoryFilterSourceSupport extends ComponentSupport
+        implements RemoteRepositoryFilterSource {
     private static final String CONFIG_PROP_PREFIX = "heimdall.";
 
     private static final String CONF_NAME_BASEDIR = "basedir";
