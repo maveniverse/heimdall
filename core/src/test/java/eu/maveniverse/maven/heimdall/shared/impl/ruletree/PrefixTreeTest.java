@@ -21,6 +21,9 @@ public class PrefixTreeTest {
 
         prefixTree.dump("");
 
+        Assertions.assertFalse(prefixTree.acceptedPath("/org"));
+        Assertions.assertFalse(prefixTree.acceptedPath("/org/foo"));
+
         Assertions.assertTrue(prefixTree.acceptedPath("/org/apache/maven"));
         Assertions.assertTrue(prefixTree.acceptedPath("/eu/maveniverse/maven"));
         Assertions.assertTrue(prefixTree.acceptedPath("/com/foo/bar/maven"));

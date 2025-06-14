@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+/**
+ * Group tree for Maven groupIDs: if you step on a path you "inherit" the access (allow).
+ */
 public class GroupTree extends Node {
     public static final GroupTree SENTINEL = new GroupTree("sentinel");
 

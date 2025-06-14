@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+/**
+ * Prefix tree for paths: if you step on a path that exists, you are good to go.
+ */
 public class PrefixTree extends Node {
     public static final PrefixTree SENTINEL = new PrefixTree("sentinel");
 
