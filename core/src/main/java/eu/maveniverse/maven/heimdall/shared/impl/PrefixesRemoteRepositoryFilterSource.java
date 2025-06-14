@@ -19,24 +19,20 @@
 package eu.maveniverse.maven.heimdall.shared.impl;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 import eu.maveniverse.maven.heimdall.shared.Session;
 import eu.maveniverse.maven.heimdall.shared.SessionUtils;
-import java.io.BufferedReader;
+import eu.maveniverse.maven.heimdall.shared.impl.ruletree.RootNode;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -89,7 +85,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
     private final RepositoryLayoutProvider repositoryLayoutProvider;
 
-    private final ConcurrentHashMap<RemoteRepository, Node> prefixes;
+    private final ConcurrentHashMap<RemoteRepository, RootNode> prefixes;
 
     private final ConcurrentHashMap<RemoteRepository, RepositoryLayout> layouts;
 
@@ -132,7 +128,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
     /**
      * Caches prefixes instances for remote repository.
      */
-    private Node cacheNode(RepositorySystemSession session, Path basedir, RemoteRepository remoteRepository) {
+    private RootNode cacheNode(RepositorySystemSession session, Path basedir, RemoteRepository remoteRepository) {
         if (!remoteRepository.isBlocked() && null == ongoingUpdates.putIfAbsent(remoteRepository, Boolean.TRUE)) {
             try {
                 return prefixes.computeIfAbsent(
@@ -141,36 +137,26 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
                 ongoingUpdates.remove(remoteRepository);
             }
         }
-        return NOT_PRESENT_NODE;
+        return RootNode.SENTINEL;
     }
 
     /**
-     * Loads prefixes file and preprocesses it into {@link Node} instance.
+     * Loads prefixes file and preprocesses it into {@link RootNode} instance.
      */
-    private Node loadRepositoryPrefixes(
+    private RootNode loadRepositoryPrefixes(
             RepositorySystemSession session, Path baseDir, RemoteRepository remoteRepository) {
         Path filePath = resolvePrefixesFromRemoteRepository(session, remoteRepository);
         if (filePath == null) {
             filePath = baseDir.resolve(PREFIXES_FILE_PREFIX + remoteRepository.getId() + PREFIXES_FILE_SUFFIX);
         }
         if (Files.isReadable(filePath)) {
-            try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
-                logger.debug(
-                        "Loading prefixes for remote repository {} from file '{}'", remoteRepository.getId(), filePath);
-                Node root = new Node("");
-                String prefix;
-                int lines = 0;
-                while ((prefix = reader.readLine()) != null) {
-                    if (!prefix.startsWith("#") && !prefix.trim().isEmpty()) {
-                        lines++;
-                        Node currentNode = root;
-                        for (String element : elementsOf(prefix)) {
-                            currentNode = currentNode.addSibling(element);
-                        }
-                    }
-                }
-                logger.info("Heimdall loaded {} prefixes for remote repository {}", lines, remoteRepository.getId());
-                return root;
+            logger.debug(
+                    "Loading prefixes for remote repository {} from file '{}'", remoteRepository.getId(), filePath);
+            try (Stream<String> lines = Files.lines(filePath, StandardCharsets.UTF_8)) {
+                RootNode rootNode = new RootNode("");
+                int rules = rootNode.loadNodes(lines);
+                logger.info("Heimdall loaded {} prefixes for remote repository {}", rules, remoteRepository.getId());
+                return rootNode;
             } catch (FileNotFoundException e) {
                 // strange: we tested for it above, still, we should not fail
             } catch (IOException e) {
@@ -178,7 +164,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
             }
         }
         logger.debug("Prefix file for remote repository {} not found at '{}'", remoteRepository, filePath);
-        return NOT_PRESENT_NODE;
+        return RootNode.SENTINEL;
     }
 
     private Path resolvePrefixesFromRemoteRepository(
@@ -235,65 +221,18 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
             if (!isEnabled(repoSession)) {
                 return NOT_PRESENT_RESULT;
             }
-            Node root = cacheNode(repoSession, basedir, remoteRepository);
-            if (NOT_PRESENT_NODE == root) {
+            RootNode root = cacheNode(repoSession, basedir, remoteRepository);
+            if (RootNode.SENTINEL == root) {
                 return NOT_PRESENT_RESULT;
             }
-            List<String> prefix = new ArrayList<>();
-            final List<String> pathElements = elementsOf(path);
-            Node currentNode = root;
-            for (String pathElement : pathElements) {
-                prefix.add(pathElement);
-                currentNode = currentNode.getSibling(pathElement);
-                if (currentNode == null || currentNode.isLeaf()) {
-                    break;
-                }
-            }
-            if (currentNode != null && currentNode.isLeaf()) {
-                return new SimpleResult(
-                        true, "Prefix " + String.join("/", prefix) + " allowed from " + remoteRepository);
+            if (root.accepted(path)) {
+                return new SimpleResult(true, "Prefix " + path + " allowed from " + remoteRepository);
             } else {
-                return new SimpleResult(
-                        false, "Prefix " + String.join("/", prefix) + " NOT allowed from " + remoteRepository);
+                return new SimpleResult(false, "Prefix " + path + " NOT allowed from " + remoteRepository);
             }
         }
     }
-
-    private static final Node NOT_PRESENT_NODE = new Node("not-present-node");
 
     private static final RemoteRepositoryFilter.Result NOT_PRESENT_RESULT =
-            new SimpleResult(true, "Prefix file not present");
-
-    private static class Node {
-        private final String name;
-
-        private final HashMap<String, Node> siblings;
-
-        private Node(String name) {
-            this.name = name;
-            this.siblings = new HashMap<>();
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public boolean isLeaf() {
-            return siblings.isEmpty();
-        }
-
-        public Node addSibling(String name) {
-            return siblings.computeIfAbsent(name, Node::new);
-        }
-
-        public Node getSibling(String name) {
-            return siblings.get(name);
-        }
-    }
-
-    private static List<String> elementsOf(final String path) {
-        return Arrays.stream(path.split("/"))
-                .filter(e -> e != null && !e.isEmpty())
-                .collect(toList());
-    }
+            new SimpleResult(true, "Prefix rules not present");
 }
