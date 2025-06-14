@@ -98,6 +98,9 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
                 GroupTree groupTree = new GroupTree("");
                 int rules = groupTree.loadNodes(lines);
                 logger.info("Heimdall loaded {} group rules for remote repository {}", rules, remoteRepository.getId());
+                if (logger.isDebugEnabled()) {
+                    groupTree.dump("");
+                }
                 return groupTree;
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

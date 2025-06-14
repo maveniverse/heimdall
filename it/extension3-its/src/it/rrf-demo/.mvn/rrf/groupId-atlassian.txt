@@ -1,3 +1,2 @@
 # allow com.atlassian and everything below
 com.atlassian
-

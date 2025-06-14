@@ -51,7 +51,7 @@ class Node {
 
     @Override
     public String toString() {
-        return (stop ? "=" : "") + name + (allow != null && allow ? "=1" : "=0");
+        return (allow != null ? (allow ? "+" : "-") : "?") + (stop ? "=" : "") + name;
     }
 
     public void dump(String prefix) {

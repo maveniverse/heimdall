@@ -26,7 +26,7 @@ public class GroupTree extends Node {
     }
 
     public GroupTree(String name) {
-        super(name, false, false);
+        super(name, false, null);
     }
 
     public int loadNodes(Stream<String> linesStream) {
