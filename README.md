@@ -1,6 +1,6 @@
 # Heimdall
 
-[![Maven Central](https://img.shields.io/maven-central/v/eu.maveniverse.maven.heimdall/extension.svg?label=Maven%20Central)](https://search.maven.org/artifact/eu.maveniverse.maven.heimdall/extension)
+[![Maven Central](https://img.shields.io/maven-central/v/eu.maveniverse.maven.heimdall/extension3.svg?label=Maven%20Central)](https://search.maven.org/artifact/eu.maveniverse.maven.heimdall/extension3)
 
 Documentation available: https://maveniverse.eu/docs/heimdall/
 
