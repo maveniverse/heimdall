@@ -155,7 +155,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
     }
 
     private static final RemoteRepositoryFilter.Result NOT_PRESENT_RESULT =
-            new SimpleResult(true, "GroupId file not present");
+            new SimpleResult(true, "GroupId rules not present");
 
     private static class GroupIds {
         private final TreeSet<String> groupIds;
