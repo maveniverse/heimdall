@@ -14,15 +14,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class RootNode extends Node {
-    public static final RootNode SENTINEL = new RootNode("sentinel");
+public class PrefixTree extends Node {
+    public static final PrefixTree SENTINEL = new PrefixTree("sentinel");
 
     private static List<String> elementsOfPath(final String path) {
         return Arrays.stream(path.split("/")).filter(e -> !e.isEmpty()).collect(toList());
     }
 
-    public RootNode(String name) {
-        super(name);
+    public PrefixTree(String name) {
+        super(name, false, null);
     }
 
     public int loadNodes(Stream<String> linesStream) {
@@ -32,14 +32,14 @@ public class RootNode extends Node {
                 counter.incrementAndGet();
                 Node currentNode = this;
                 for (String element : elementsOfPath(line)) {
-                    currentNode = currentNode.addSibling(element);
+                    currentNode = currentNode.addSibling(element, false, null);
                 }
             }
         });
         return counter.get();
     }
 
-    public boolean accepted(String path) {
+    public boolean acceptedPath(String path) {
         final List<String> pathElements = elementsOfPath(path);
         Node currentNode = this;
         for (String pathElement : pathElements) {
