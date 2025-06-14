@@ -26,9 +26,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
@@ -65,7 +63,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
 
     static final String GROUP_ID_FILE_SUFFIX = ".txt";
 
-    private final ConcurrentHashMap<Path, Set<String>> rules;
+    private final ConcurrentHashMap<Path, GroupIds> rules;
 
     @Inject
     public GroupIdRemoteRepositoryFilterSource() {
@@ -89,19 +87,21 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
         return basedir.resolve(GROUP_ID_FILE_PREFIX + remoteRepositoryId + GROUP_ID_FILE_SUFFIX);
     }
 
-    private Set<String> cacheRules(RepositorySystemSession session, RemoteRepository remoteRepository) {
+    private GroupIds cacheRules(RepositorySystemSession session, RemoteRepository remoteRepository) {
         Path filePath = filePath(getBasedir(session, false), remoteRepository.getId());
         return rules.computeIfAbsent(filePath, r -> {
-            Set<String> rules = loadRepositoryRules(filePath);
+            GroupIds rules = loadRepositoryRules(filePath);
             if (rules != NOT_PRESENT) {
                 logger.info(
-                        "Heimdall loaded {} groupId for remote repository {}", rules.size(), remoteRepository.getId());
+                        "Heimdall loaded {} groupId for remote repository {}",
+                        rules.ruleCount(),
+                        remoteRepository.getId());
             }
             return rules;
         });
     }
 
-    private Set<String> loadRepositoryRules(Path filePath) {
+    private GroupIds loadRepositoryRules(Path filePath) {
         if (Files.isReadable(filePath)) {
             try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
                 TreeSet<String> result = new TreeSet<>();
@@ -111,7 +111,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
                         result.add(groupId);
                     }
                 }
-                return Collections.unmodifiableSet(result);
+                return new GroupIds(result);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -119,7 +119,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
         return NOT_PRESENT;
     }
 
-    private static final TreeSet<String> NOT_PRESENT = new TreeSet<>();
+    private static final GroupIds NOT_PRESENT = new GroupIds(new TreeSet<>());
 
     private class GroupIdFilter implements RemoteRepositoryFilter {
         private final Session session;
@@ -141,12 +141,12 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
         }
 
         private Result acceptGroupId(RemoteRepository remoteRepository, String groupId) {
-            Set<String> groupIds = cacheRules(repoSession, remoteRepository);
+            GroupIds groupIds = cacheRules(repoSession, remoteRepository);
             if (NOT_PRESENT == groupIds) {
                 return NOT_PRESENT_RESULT;
             }
 
-            if (groupIds.contains(groupId)) {
+            if (groupIds.accepted(groupId)) {
                 return new SimpleResult(true, "G:" + groupId + " allowed from " + remoteRepository);
             } else {
                 return new SimpleResult(false, "G:" + groupId + " NOT allowed from " + remoteRepository);
@@ -156,4 +156,20 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
 
     private static final RemoteRepositoryFilter.Result NOT_PRESENT_RESULT =
             new SimpleResult(true, "GroupId file not present");
+
+    private static class GroupIds {
+        private final TreeSet<String> groupIds;
+
+        public GroupIds(TreeSet<String> groupIds) {
+            this.groupIds = groupIds;
+        }
+
+        public int ruleCount() {
+            return groupIds.size();
+        }
+
+        public boolean accepted(String groupId) {
+            return groupIds.contains(groupId);
+        }
+    }
 }
