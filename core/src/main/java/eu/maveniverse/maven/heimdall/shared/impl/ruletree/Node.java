@@ -12,7 +12,7 @@ import java.util.HashMap;
 /**
  * A tree structure with rules.
  */
-public class Node {
+class Node {
     private final String name;
     private final boolean stop;
     private final Boolean allow;

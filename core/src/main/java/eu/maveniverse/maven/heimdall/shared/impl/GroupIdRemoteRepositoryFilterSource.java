@@ -20,15 +20,15 @@ package eu.maveniverse.maven.heimdall.shared.impl;
 
 import eu.maveniverse.maven.heimdall.shared.Session;
 import eu.maveniverse.maven.heimdall.shared.SessionUtils;
-import java.io.BufferedReader;
+import eu.maveniverse.maven.heimdall.shared.impl.ruletree.GroupTree;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -63,7 +63,7 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
 
     static final String GROUP_ID_FILE_SUFFIX = ".txt";
 
-    private final ConcurrentHashMap<Path, GroupIds> rules;
+    private final ConcurrentHashMap<RemoteRepository, GroupTree> rules;
 
     @Inject
     public GroupIdRemoteRepositoryFilterSource() {
@@ -87,39 +87,24 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
         return basedir.resolve(GROUP_ID_FILE_PREFIX + remoteRepositoryId + GROUP_ID_FILE_SUFFIX);
     }
 
-    private GroupIds cacheRules(RepositorySystemSession session, RemoteRepository remoteRepository) {
-        Path filePath = filePath(getBasedir(session, false), remoteRepository.getId());
-        return rules.computeIfAbsent(filePath, r -> {
-            GroupIds rules = loadRepositoryRules(filePath);
-            if (rules != NOT_PRESENT) {
-                logger.info(
-                        "Heimdall loaded {} groupId for remote repository {}",
-                        rules.ruleCount(),
-                        remoteRepository.getId());
-            }
-            return rules;
-        });
+    private GroupTree cacheRules(RepositorySystemSession session, RemoteRepository remoteRepository) {
+        return rules.computeIfAbsent(remoteRepository, r -> loadRepositoryRules(session, r));
     }
 
-    private GroupIds loadRepositoryRules(Path filePath) {
+    private GroupTree loadRepositoryRules(RepositorySystemSession session, RemoteRepository remoteRepository) {
+        Path filePath = filePath(getBasedir(session, false), remoteRepository.getId());
         if (Files.isReadable(filePath)) {
-            try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
-                TreeSet<String> result = new TreeSet<>();
-                String groupId;
-                while ((groupId = reader.readLine()) != null) {
-                    if (!groupId.startsWith("#") && !groupId.trim().isEmpty()) {
-                        result.add(groupId);
-                    }
-                }
-                return new GroupIds(result);
+            try (Stream<String> lines = Files.lines(filePath, StandardCharsets.UTF_8)) {
+                GroupTree groupTree = new GroupTree("");
+                int rules = groupTree.loadNodes(lines);
+                logger.info("Heimdall loaded {} group rules for remote repository {}", rules, remoteRepository.getId());
+                return groupTree;
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
         }
-        return NOT_PRESENT;
+        return GroupTree.SENTINEL;
     }
-
-    private static final GroupIds NOT_PRESENT = new GroupIds(new TreeSet<>());
 
     private class GroupIdFilter implements RemoteRepositoryFilter {
         private final Session session;
@@ -141,12 +126,12 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
         }
 
         private Result acceptGroupId(RemoteRepository remoteRepository, String groupId) {
-            GroupIds groupIds = cacheRules(repoSession, remoteRepository);
-            if (NOT_PRESENT == groupIds) {
+            GroupTree groupIds = cacheRules(repoSession, remoteRepository);
+            if (GroupTree.SENTINEL == groupIds) {
                 return NOT_PRESENT_RESULT;
             }
 
-            if (groupIds.accepted(groupId)) {
+            if (groupIds.acceptedGroupId(groupId)) {
                 return new SimpleResult(true, "G:" + groupId + " allowed from " + remoteRepository);
             } else {
                 return new SimpleResult(false, "G:" + groupId + " NOT allowed from " + remoteRepository);
@@ -156,20 +141,4 @@ public final class GroupIdRemoteRepositoryFilterSource extends RemoteRepositoryF
 
     private static final RemoteRepositoryFilter.Result NOT_PRESENT_RESULT =
             new SimpleResult(true, "GroupId rules not present");
-
-    private static class GroupIds {
-        private final TreeSet<String> groupIds;
-
-        public GroupIds(TreeSet<String> groupIds) {
-            this.groupIds = groupIds;
-        }
-
-        public int ruleCount() {
-            return groupIds.size();
-        }
-
-        public boolean accepted(String groupId) {
-            return groupIds.contains(groupId);
-        }
-    }
 }

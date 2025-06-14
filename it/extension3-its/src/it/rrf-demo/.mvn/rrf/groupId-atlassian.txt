@@ -1,4 +1,3 @@
-com.atlassian.audit
-com.atlassian.platform
-com.atlassian.pom
+# allow com.atlassian and everything below
+com.atlassian
 
