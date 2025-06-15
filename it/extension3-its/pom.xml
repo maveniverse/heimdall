@@ -79,15 +79,29 @@
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
               <execution>
-                <id>prepare-user-home</id>
+                <id>prepare-user-home-mvn39</id>
                 <goals>
                   <goal>run</goal>
                 </goals>
                 <phase>generate-test-resources</phase>
                 <configuration>
                   <target>
-                    <copy todir="${project.build.directory}/it-user">
-                      <fileset dir="src/it/user-home" />
+                    <copy todir="${project.build.directory}/mvn39-it-user">
+                      <fileset dir="src/it/mvn39-user-home" />
+                    </copy>
+                  </target>
+                </configuration>
+              </execution>
+              <execution>
+                <id>prepare-user-home-mvn4</id>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+                <phase>generate-test-resources</phase>
+                <configuration>
+                  <target>
+                    <copy todir="${project.build.directory}/mvn4-it-user">
+                      <fileset dir="src/it/mvn4-user-home" />
                     </copy>
                   </target>
                 </configuration>
@@ -109,7 +123,7 @@
                 </goals>
                 <phase>integration-test</phase>
                 <configuration>
-                  <localRepositoryPath>${project.build.directory}/it-repo-mvn39</localRepositoryPath>
+                  <localRepositoryPath>${project.build.directory}/mvn39-it-user/.m2/repository</localRepositoryPath>
                 </configuration>
               </execution>
               <execution>
@@ -119,7 +133,7 @@
                 </goals>
                 <phase>integration-test</phase>
                 <configuration>
-                  <localRepositoryPath>${project.build.directory}/it-repo-mvn4</localRepositoryPath>
+                  <localRepositoryPath>${project.build.directory}/mvn4-it-user/.m2/repository</localRepositoryPath>
                 </configuration>
               </execution>
               <execution>
@@ -131,9 +145,9 @@
                 <configuration>
                   <mavenHome>${project.build.directory}/dependency/apache-maven-${maven39Version}</mavenHome>
                   <cloneProjectsTo>${project.build.directory}/mvn39-it</cloneProjectsTo>
-                  <localRepositoryPath>${project.build.directory}/it-repo-mvn39</localRepositoryPath>
-                  <settingsFile>${project.build.directory}/it-user/.m2/settings.xml</settingsFile>
-                  <mavenOpts>-Duser.home=${project.build.directory}/it-user</mavenOpts>
+                  <settingsFile>${project.build.directory}/mvn39-it-user/.m2/settings.xml</settingsFile>
+                  <localRepositoryPath>${project.build.directory}/mvn39-it-user/.m2/repository</localRepositoryPath>
+                  <mavenOpts>-Duser.home=${project.build.directory}/mvn39-it-user</mavenOpts>
                   <cloneClean>true</cloneClean>
                   <pomIncludes>
                     <pomInclude>*/pom.xml</pomInclude>
@@ -156,13 +170,17 @@
                   <skipInvocation>${mvn4-its-run.skip}</skipInvocation>
                   <mavenHome>${project.build.directory}/dependency/apache-maven-${maven4Version}</mavenHome>
                   <cloneProjectsTo>${project.build.directory}/mvn4-it</cloneProjectsTo>
-                  <localRepositoryPath>${project.build.directory}/it-repo-mvn4</localRepositoryPath>
-                  <settingsFile>${project.build.directory}/it-user/.m2/settings.xml</settingsFile>
-                  <mavenOpts>-Duser.home=${project.build.directory}/it-user</mavenOpts>
+                  <settingsFile>${project.build.directory}/mvn4-it-user/.m2/settings.xml</settingsFile>
+                  <localRepositoryPath>${project.build.directory}/mvn4-it-user/.m2/repository</localRepositoryPath>
+                  <mavenOpts>-Duser.home=${project.build.directory}/mvn4-it-user</mavenOpts>
                   <cloneClean>true</cloneClean>
                   <pomIncludes>
                     <pomInclude>*/pom.xml</pomInclude>
                   </pomIncludes>
+                  <pomExcludes>
+                    <!-- Maven 4-rc-3 cannot use rrf-demo due https://github.com/apache/maven/pull/2480 -->
+                    <pomExclude>rrf-demo/pom.xml</pomExclude>
+                  </pomExcludes>
                   <scriptVariables>
                     <projectVersion>${project.version}</projectVersion>
                   </scriptVariables>
@@ -179,10 +197,9 @@
     <profile>
       <id>maven4-capable-jdk</id>
       <activation>
-        <jdk>[25,)</jdk>
+        <jdk>[17,)</jdk>
       </activation>
       <properties>
-        <!-- TODO: Maven 4 is broken -->
         <mvn4-its-run.skip>false</mvn4-its-run.skip>
       </properties>
     </profile>
