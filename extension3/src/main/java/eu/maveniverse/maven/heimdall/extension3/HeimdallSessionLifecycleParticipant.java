@@ -52,8 +52,11 @@ public class HeimdallSessionLifecycleParticipant extends AbstractMavenLifecycleP
                             RepositoryUtils.toRepos(session.getRequest().getRemoteRepositories()))
                     .build();
             if (sc.enabled()) {
-                SessionUtils.lazyInit(sc, sessionFactoryProvider.get()::create);
-                logger.info("Heimdall {} session created", sc.version());
+                SessionUtils.lazyInit(session.getRepositorySession(), () -> {
+                    Session s = sessionFactoryProvider.get().create(sc);
+                    logger.info("Heimdall {} session created", sc.version());
+                    return s;
+                });
             } else {
                 logger.info("Heimdall {} disabled", sc.version());
             }
