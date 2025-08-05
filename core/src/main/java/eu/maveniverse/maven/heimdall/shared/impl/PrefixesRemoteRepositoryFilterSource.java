@@ -36,9 +36,9 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.impl.MetadataResolver;
 import org.eclipse.aether.metadata.DefaultMetadata;
 import org.eclipse.aether.metadata.Metadata;
 import org.eclipse.aether.repository.RemoteRepository;
@@ -83,7 +83,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
     private static final String PREFIX_FILE_PATH = ".meta/prefixes.txt";
 
-    private final RepositorySystem repositorySystem;
+    private final MetadataResolver metadataResolver;
 
     private final RepositoryLayoutProvider repositoryLayoutProvider;
 
@@ -93,9 +93,9 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
 
     @Inject
     public PrefixesRemoteRepositoryFilterSource(
-            RepositorySystem repositorySystem, RepositoryLayoutProvider repositoryLayoutProvider) {
+            MetadataResolver metadataResolver, RepositoryLayoutProvider repositoryLayoutProvider) {
         super(NAME);
-        this.repositorySystem = requireNonNull(repositorySystem);
+        this.metadataResolver = requireNonNull(metadataResolver);
         this.repositoryLayoutProvider = requireNonNull(repositoryLayoutProvider);
         this.prefixes = new ConcurrentHashMap<>();
         this.layouts = new ConcurrentHashMap<>();
@@ -176,7 +176,7 @@ public final class PrefixesRemoteRepositoryFilterSource extends RemoteRepository
         request.setRepository(remoteRepository);
         request.setDeleteLocalCopyIfMissing(true);
         request.setFavorLocalRepository(true);
-        MetadataResult result = repositorySystem
+        MetadataResult result = metadataResolver
                 .resolveMetadata(session, Collections.singleton(request))
                 .get(0);
         if (result.isResolved()) {
