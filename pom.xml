@@ -14,7 +14,7 @@
   <parent>
     <groupId>eu.maveniverse.maven.parent</groupId>
     <artifactId>parent</artifactId>
-    <version>41</version>
+    <version>43</version>
   </parent>
 
   <groupId>eu.maveniverse.maven.heimdall</groupId>
@@ -71,7 +71,7 @@
     <version.maven3>3.9.11</version.maven3>
     <version.maven3resolver>1.9.24</version.maven3resolver>
     <version.maven4>4.0.0-rc-4</version.maven4>
-    <version.maven4resolver>2.0.10</version.maven4resolver>
+    <version.maven4resolver>2.0.13</version.maven4resolver>
 
     <!-- Dependency versions -->
     <version.maven>${version.maven3}</version.maven>
