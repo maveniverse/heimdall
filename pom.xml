@@ -37,7 +37,6 @@
   <modules>
     <module>core</module>
     <module>extension3</module>
-    <module>extension4</module>
     <module>it</module>
   </modules>
 
